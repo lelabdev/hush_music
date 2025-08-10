@@ -1,0 +1,58 @@
+<!-- templates/share_created.html -->
+<!DOCTYPE html>
+<html class="dark" data-theme="dark">
+
+<head>
+    <title>✅ Lien généré</title>
+    <link href="https://cdn.jsdelivr.net/npm/daisyui@5" rel="stylesheet" type="text/css" />
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+</head>
+
+<body class="bg-base-200 min-h-screen py-8 px-4">
+    <div class="max-w-md mx-auto card bg-base-100 shadow-xl p-6">
+        <h2 class="text-xl font-bold mb-4">🔗 Lien temporaire généré</h2>
+        
+        <div class="mb-4">
+            <p class="text-sm font-semibold">Fichier :</p>
+            <p class="text-sm opacity-80">{{ filename }}</p>
+        </div>
+
+        <div class="mb-4">
+            <p class="text-sm font-semibold">Lien de partage :</p>
+            <div class="flex gap-2">
+                <input id="share-url-input" readonly value="{{ share_url }}" class="input input-bordered input-sm w-full font-mono text-xs" />
+                <button id="copy-button" class="btn btn-sm btn-ghost">Copier</button>
+            </div>
+        </div>
+
+        <div class="mb-4">
+            <p class="text-xs opacity-50">
+                Expire le : {{ expiry_date }}
+            </p>
+        </div>
+
+        <a href="{{ url_for('main.index') }}" class="btn btn-primary btn-sm">Retour à l'accueil</a>
+    </div>
+
+    <script>
+        document.getElementById('copy-button').addEventListener('click', function() {
+            const input = document.getElementById('share-url-input');
+            input.select();
+            input.setSelectionRange(0, 99999); // For mobile devices
+
+            try {
+                navigator.clipboard.writeText(input.value);
+                this.textContent = 'Copié !';
+                setTimeout(() => {
+                    this.textContent = 'Copier';
+                }, 2000);
+            } catch (err) {
+                console.error('Erreur lors de la copie : ', err);
+                alert("Impossible de copier le lien.");
+            }
+        });
+    </script>
+</body>
+
+</html>

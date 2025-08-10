@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html class="dark"
+      data-theme="light">
+
+<head>
+  <meta charset="UTF-8">
+  <title>🔊 Hush</title>
+  <link href="https://cdn.jsdelivr.net/npm/daisyui@5"
+        rel="stylesheet"
+        type="text/css" />
+  <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+  <meta name="viewport"
+        content="width=device-width, initial-scale=1" />
+</head>
+
+<body class="bg-base-200 min-h-screen py-8 px-4">
+  <div class="max-w-3xl mx-auto card bg-base-100 shadow-xl p-6">
+
+    <h1 class="text-3xl font-bold mb-6 text-center">🔊 Hush</h1>
+
+    {% if not authenticated %}
+    <form method="POST"
+          class="form-control flex flex-col w-full gap-4">
+      <fieldset class="fieldset">
+        <legend class="fieldset-legend">🔑 Mot de passe</legend>
+        <input type="password"
+               name="password"
+               placeholder="Mot de passe"
+               required
+               class="input input-xl w-full" />
+      </fieldset>
+      <button type="submit"
+              class="btn btn-lg btn-primary mt-4 w-full">Accéder</button>
+    </form>
+    {% else %}
+    {% if editor_mode %}
+    <div class="alert alert-info mb-6 text-center">✏️ Mode éditeur activé</div>
+
+    <!-- Formulaire de création de dossier -->
+    <form method="POST"
+          class="form-control mb-8">
+      <label class="label">📁 Créer un nouveau dossier</label>
+      <input type="text"
+             name="create_folder"
+             placeholder="Nom du dossier"
+             class="input input-bordered w-full"
+             required />
+      <button type="submit"
+              class="btn  btn-neutral mt-4 btn-lg mt-2 w-full">Créer le
+        dossier</button>
+    </form>
+
+    <!-- Formulaire d'upload de fichier -->
+    <form method="POST"
+          enctype="multipart/form-data"
+          class="form-control  mb-8">
+      <label class="label">📤 Ajouter un morceau dans {{ current_path if
+        current_path else 'la racine' }}</label>
+      <input type="file"
+             name="file"
+             accept="audio/*"
+             class="file-input file-input-bordered w-full"
+             required />
+      <button type="submit"
+              class="btn mt-4 btn-success btn-lg w-full mt-2">Envoyer</button>
+    </form>
+    {% endif %}
+
+    <h2 class="text-xl font-semibold mb-4">🎧 Contenu de {{ current_path if
+      current_path else 'la racine' }}</h2>
+
+    <!-- Breadcrumbs -->
+    {% if current_path %}
+    <div class="text-sm breadcrumbs mb-4">
+      <ul>
+        <li><a href="{{ url_for('main.index') }}">Racine</a></li>
+        {% set path_parts = current_path.split('/') %}
+        {% set cumulative_path = [] %}
+        {% for part in path_parts %}
+        {% set _ = cumulative_path.append(part) %}
+        <li><a
+             href="{{ url_for('main.index', current_path=cumulative_path|join('/')) }}">{{
+            part }}</a></li>
+        {% endfor %}
+      </ul>
+    </div>
+    {% endif %}
+
+    <div class="space-y-4">
+      <!-- Dossiers -->
+      {% for folder in folders %}
+      <div class="card bg-base-200 p-4">
+        <div class="flex justify-between items-center">
+          <a href="{{ url_for('main.index', current_path=(current_path + '/' + folder) if current_path else folder) }}"
+             class="text-lg font-semibold flex items-center">
+            📁 {{ folder }}
+          </a>
+          {% if editor_mode %}
+          <div class="flex gap-1">
+            <form method="POST"
+                  action="{{ url_for('main.index', current_path=current_path) }}"
+                  style="display:inline;">
+              <input type="hidden"
+                     name="delete_item"
+                     value="{{ folder }}" />
+              <button type="submit"
+                      class="btn btn-ghost btn-xs text-error"
+                      onclick="return confirm('Êtes-vous sûr de vouloir supprimer ce dossier ? Il doit être vide.');">🗑️</button>
+            </form>
+            <a href="#"
+               onclick="document.getElementById('share-modal-{{ loop.index + files|length }}').showModal()"
+               class="btn btn-ghost btn-xs">🔗</a>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+      <!-- Modal pour le partage de dossier -->
+      <dialog id="share-modal-{{ loop.index + files|length }}"
+              class="modal">
+        <div class="modal-box">
+          <h3 class="font-bold text-lg">Partager le dossier "{{ folder }}"</h3>
+          <form method="POST"
+                action="{{ url_for('main.create_share_link', item_path=(current_path + '/' + folder) if current_path else folder) }}">
+            <div class="form-control">
+              <label class="label">
+                <span class="label-text">Nom du lien (optionnel)</span>
+              </label>
+              <input type="text"
+                     name="link_name"
+                     placeholder="Ex: Mon dossier de démos"
+                     class="input input-bordered" />
+            </div>
+            <div class="modal-action">
+              <button type="submit"
+                      class="btn btn-primary">Créer le lien</button>
+              <button type="button"
+                      class="btn"
+                      onclick="document.getElementById('share-modal-{{ loop.index + files|length }}').close()">Annuler</button>
+            </div>
+          </form>
+        </div>
+      </dialog>
+      {% endfor %}
+
+      <!-- Fichiers -->
+      {% for file in files %}
+      <div class="card bg-base-200 p-4">
+        <audio controls
+               controlsList="nodownload"
+               class="mt-4 mb-0 w-full">
+          <source src="{{ url_for('main.uploaded_file', filename_or_path=(current_path + '/' + file) if current_path else file, _external=True) }}"
+                  type="audio/mpeg">
+          Votre navigateur ne supporte pas l'audio.
+        </audio>
+        <div class="flex justify-between items-center mt-2">
+          <span class="text-sm opacity-70">{{ file }}</span>
+          {% if editor_mode %}
+          <div class="flex gap-1">
+            <form method="POST"
+                  action="{{ url_for('main.index', current_path=current_path) }}"
+                  style="display:inline;">
+              <input type="hidden"
+                     name="delete_item"
+                     value="{{ file }}" />
+              <button type="submit"
+                      class="btn btn-ghost btn-xs text-error">🗑️</button>
+            </form>
+            <a href="#"
+               onclick="document.getElementById('share-modal-{{ loop.index }}').showModal()"
+               class="btn btn-ghost btn-xs">🔗</a>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+
+      <!-- Modal pour le partage de fichier -->
+      <dialog id="share-modal-{{ loop.index }}"
+              class="modal">
+        <div class="modal-box">
+          <h3 class="font-bold text-lg">Partager "{{ file }}"</h3>
+          <form method="POST"
+                action="{{ url_for('main.create_share_link', item_path=(current_path + '/' + file) if current_path else file) }}">
+            <div class="form-control">
+              <label class="label">
+                <span class="label-text">Nom du lien (optionnel)</span>
+              </label>
+              <input type="text"
+                     name="link_name"
+                     placeholder="Ex: Ma démo pour le label"
+                     class="input input-bordered" />
+            </div>
+            <div class="modal-action">
+              <button type="submit"
+                      class="btn btn-primary">Créer le lien</button>
+              <button type="button"
+                      class="btn"
+                      onclick="document.getElementById('share-modal-{{ loop.index }}').close()">Annuler</button>
+            </div>
+          </form>
+        </div>
+      </dialog>
+      {% endfor %}
+    </div>
+
+    {% if editor_mode and shared_links %}
+    <div class="mt-8">
+      <h2 class="text-xl font-semibold mb-4">🔗 Liens de partage actifs</h2>
+      <div class="overflow-x-auto">
+        <table class="table w-full">
+          <thead>
+            <tr>
+              <th>Nom du lien</th>
+              <th>Type</th>
+              <th>Élément</th>
+              <th>Expire le</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for link in shared_links %}
+            <tr class="{% if link.is_expired %}opacity-50{% endif %}">
+              <td><a href="{{ link.url }}"
+                   target="_blank"
+                   class="link">{{ link.link_name if link.link_name and
+                  link.link_name != 'Partage de ' + link.item_name else
+                  link.token }}</a></td>
+              <td>{{ 'Dossier' if link.is_directory else 'Fichier' }}</td>
+              <td>{{ link.item_name }}</td>
+              <td>{{ link.expiry_date_str }}</td>
+              <td>
+                <form method="POST"
+                      action="{{ url_for('main.index', current_path=current_path) }}">
+                  <input type="hidden"
+                         name="delete_link"
+                         value="{{ link.token }}" />
+                  <button type="submit"
+                          class="btn btn-ghost btn-xs text-error">🗑️</button>
+                </form>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+    {% endif %}
+
+    <div class="mt-6 text-center">
+      <a href="{{ url_for('main.logout') }}"
+         class="btn btn-outline btn-sm">Déconnexion</a>
+    </div>
+    {% endif %}
+  </div>
+</body>
+
+</html>

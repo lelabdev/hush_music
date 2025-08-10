@@ -1,0 +1,43 @@
+<!-- templates/shared.html -->
+<!DOCTYPE html>
+<html class="dark" data-theme="dark">
+
+<head>
+  <title>🔊 Écouter</title>
+  <link href="https://cdn.jsdelivr.net/npm/daisyui@5" rel="stylesheet" type="text/css" />
+  <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+</head>
+
+<body class="bg-base-200 min-h-screen py-8 px-4">
+  <div class="max-w-md mx-auto card bg-base-100 shadow-xl p-6">
+    <h2 class="text-xl font-bold mb-4">🔗 {{ link_name }}</h2>
+
+    {% if is_directory %}
+    <h3 class="text-lg font-semibold mb-4">Contenu du dossier "{{ item_name }}"</h3>
+    {% if files %}
+    <div class="space-y-4">
+      {% for file in files %}
+      <div class="card bg-base-200 p-4">
+        <p class="text-sm opacity-70 mb-2">{{ file.name }}</p>
+        <audio controls autoplay controlsList="nodownload" class="mt-4 mb-0 w-full">
+          <source src="{{ file.url }}" type="audio/mpeg">
+          Votre navigateur ne supporte pas l'audio.
+        </audio>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <p class="text-sm opacity-70">Ce dossier est vide ou ne contient pas de fichiers audio supportés.</p>
+    {% endif %}
+    {% else %}
+    <p class="text-sm opacity-70 mb-4">{{ filename }}</p>
+    <audio controls autoplay controlsList="nodownload" class="mt-4 mb-0 w-full">
+      <source src="{{ file_url }}" type="audio/mpeg">
+      Votre navigateur ne supporte pas l'audio.
+    </audio>
+    {% endif %}
+  </div>
+</body>
+
+</html>
